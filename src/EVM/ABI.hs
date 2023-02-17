@@ -444,9 +444,9 @@ genAbiValue = \case
        replicateM n (scale (`div` 2) (genAbiValue t))
    AbiTupleType ts ->
      AbiTuple <$> mapM genAbiValue ts
-   AbiFunctionType ->
-     do xs <- replicateM 24 arbitrary
-        pure (AbiFunction (BS.pack (xs ++ replicate (32-24) 0)))
+   AbiFunctionType -> pure $ AbiFunction (BS.pack [0..32])
+     -- do xs <- replicateM 24 arbitrary
+     --    pure (AbiFunction (BS.pack (xs ++ replicate (32-24) 0)))
   where
     genUInt :: Int -> Gen Word256
     genUInt n = arbitraryIntegralWithMax (2^n-1) :: Gen Word256
