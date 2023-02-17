@@ -230,7 +230,7 @@ getAbi t = label (Text.unpack (abiTypeSolidity t)) $
       AbiTuple <$> getAbiSeq (Vector.length ts) (Vector.toList ts)
 
     AbiFunctionType ->
-      AbiFunction <$> getBytesWith256BitPadding (32 :: Int)
+      AbiFunction <$> getBytesWith256BitPadding (24 :: Int)
 
 putAbi :: AbiValue -> Put
 putAbi = \case
@@ -264,8 +264,8 @@ putAbi = \case
   AbiTuple v ->
     putAbiSeq v
 
-  AbiFunction b ->
-    putAbi (AbiBytes 32 b)
+  AbiFunction b -> do
+    putAbi (AbiBytes 24 b)
 
 -- | Decode a sequence type (e.g. tuple / array). Will fail for non sequence types
 getAbiSeq :: Int -> [AbiType] -> Get (Vector AbiValue)
@@ -445,7 +445,7 @@ genAbiValue = \case
    AbiTupleType ts ->
      AbiTuple <$> mapM genAbiValue ts
    AbiFunctionType ->
-     do xs <- replicateM 32 arbitrary
+     do xs <- replicateM 24 arbitrary
         pure (AbiFunction (BS.pack xs))
   where
     genUInt :: Int -> Gen Word256
@@ -489,7 +489,7 @@ instance Arbitrary AbiValue where
     AbiBool b -> AbiBool <$> shrink b
     AbiAddress a -> [AbiAddress 0xacab, AbiAddress 0xdeadbeef, AbiAddress 0xbabeface]
       <> (AbiAddress <$> shrinkIntegral a)
-    AbiFunction _ -> [] -- AbiFunction (BS.pack (replicate 32 0)) ]
+    AbiFunction _ -> [] -- AbiFunction (BS.pack (replicate 32 0)) ] TODO
 
 
 -- Bool synonym with custom read instance
