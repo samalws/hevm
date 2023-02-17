@@ -230,7 +230,7 @@ getAbi t = label (Text.unpack (abiTypeSolidity t)) $
       AbiTuple <$> getAbiSeq (Vector.length ts) (Vector.toList ts)
 
     AbiFunctionType ->
-      AbiFunction <$> getBytesWith256BitPadding (24 :: Int)
+      AbiFunction <$> getBytesWith256BitPadding (32 :: Int)
 
 putAbi :: AbiValue -> Put
 putAbi = \case
@@ -445,8 +445,8 @@ genAbiValue = \case
    AbiTupleType ts ->
      AbiTuple <$> mapM genAbiValue ts
    AbiFunctionType ->
-     do xs <- replicateM 24 arbitrary
-        pure (AbiFunction (BS.pack (xs ++ replicate (32-24) 0)))
+     do xs <- replicateM 32 arbitrary
+        pure (AbiFunction (BS.pack xs))
   where
     genUInt :: Int -> Gen Word256
     genUInt n = arbitraryIntegralWithMax (2^n-1) :: Gen Word256
