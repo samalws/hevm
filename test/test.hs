@@ -378,6 +378,23 @@ tests = testGroup "hevm"
           -- traceM ("encoded (solidity): " ++ show solidityEncoded)
           -- traceM ("encoded (hevm): " ++ show (AbiBytesDynamic hevmEncoded))
           assertEqual "abi encoding mismatch" solidityEncoded (AbiBytesDynamic hevmEncoded)
+
+    -- we need a separate test for this because the type of a function is "function() external" in solidity but just "function" in the abi:
+    , testProperty "abi encoding vs. solidity (function pointer)" $ withMaxSuccess 20 $ forAll (genAbiValue AbiFunctionType) $
+      \y -> ioProperty $ do
+          -- traceM ("encoding: " ++ (show y) ++ " : " ++ show (abiValueType y))
+          Just encoded <- runFunction [i|
+              function foo(function() external a) public pure returns (bytes memory x) {
+                x = abi.encode(a);
+              }
+            |] (abiMethod "foo(function)" (AbiTuple (Vector.singleton y)))
+          let solidityEncoded = case decodeAbiValue (AbiTupleType $ Vector.fromList [AbiBytesDynamicType]) (BS.fromStrict encoded) of
+                AbiTuple (Vector.toList -> [e]) -> e
+                _ -> error "AbiTuple expected"
+          let hevmEncoded = encodeAbiValue (AbiTuple $ Vector.fromList [y])
+          -- traceM ("encoded (solidity): " ++ show solidityEncoded)
+          -- traceM ("encoded (hevm): " ++ show (AbiBytesDynamic hevmEncoded))
+          assertEqual "abi encoding mismatch" solidityEncoded (AbiBytesDynamic hevmEncoded)
     ]
 
   , testGroup "Precompiled contracts"
