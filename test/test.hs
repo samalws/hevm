@@ -2,6 +2,8 @@
 {-# Language NumericUnderscores #-}
 {-# Language QuasiQuotes #-}
 {-# Language DataKinds #-}
+{-# OPTIONS_GHC -Wno-unused-imports #-}
+{-# OPTIONS -Wno-unused-imports #-}
 
 module Main where
 
@@ -349,6 +351,7 @@ tests = testGroup "hevm"
           -- traceM ("encoded (hevm): " ++ show (AbiBytesDynamic hevmEncoded))
           assertEqual "abi encoding mismatch" solidityEncoded (AbiBytesDynamic hevmEncoded)
     ]
+
 
   , testGroup "Precompiled contracts"
       [ testGroup "Example (reverse)"
@@ -2212,7 +2215,7 @@ runStatements stmts args t = do
             (zip args "abcdefg"))
       s =
         "foo(" <> T.intercalate ","
-                    (map (abiTypeSolidity . abiValueType) args) <> ")"
+                    (map (abiTypeSolidity2 . abiValueType) args) <> ")"
 
   runFunction [i|
     function foo(${params}) public pure returns (${abiTypeSolidity t} ${defaultDataLocation t} x) {
