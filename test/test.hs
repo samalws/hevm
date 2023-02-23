@@ -2,8 +2,6 @@
 {-# Language NumericUnderscores #-}
 {-# Language QuasiQuotes #-}
 {-# Language DataKinds #-}
-{-# OPTIONS_GHC -Wno-unused-imports #-}
-{-# OPTIONS -Wno-unused-imports #-}
 
 module Main where
 
@@ -351,7 +349,6 @@ tests = testGroup "hevm"
           -- traceM ("encoded (hevm): " ++ show (AbiBytesDynamic hevmEncoded))
           assertEqual "abi encoding mismatch" solidityEncoded (AbiBytesDynamic hevmEncoded)
     ]
-
 
   , testGroup "Precompiled contracts"
       [ testGroup "Example (reverse)"

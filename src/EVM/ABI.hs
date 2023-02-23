@@ -119,7 +119,7 @@ instance Show AbiValue where
     "[" ++ intercalate ", " (show <$> Vector.toList v) ++ "]"
   show (AbiTuple v) =
     "(" ++ intercalate ", " (show <$> Vector.toList v) ++ ")"
-  show (AbiFunction b) = show (ByteStringS b)
+  show (AbiFunction b)       = show (ByteStringS b)
 
 formatString :: ByteString -> String
 formatString bs =
@@ -382,7 +382,6 @@ basicType v =
 
     , P.string "bytes" $> AbiBytesDynamicType
     , P.string "tuple" $> AbiTupleType v
-
     , P.string "function" $> AbiFunctionType
     ]
 
@@ -444,9 +443,9 @@ genAbiValue = \case
        replicateM n (scale (`div` 2) (genAbiValue t))
    AbiTupleType ts ->
      AbiTuple <$> mapM genAbiValue ts
-   AbiFunctionType -> pure (AbiFunction (BS.pack $ replicate 24 0))
-     -- do xs <- replicateM 24 arbitrary
-     --    pure (AbiFunction (BS.pack xs))
+   AbiFunctionType ->
+     do xs <- replicateM 24 arbitrary
+        pure (AbiFunction (BS.pack xs))
   where
     genUInt :: Int -> Gen Word256
     genUInt n = arbitraryIntegralWithMax (2^n-1) :: Gen Word256
@@ -488,7 +487,7 @@ instance Arbitrary AbiValue where
     AbiBool b -> AbiBool <$> shrink b
     AbiAddress a -> [AbiAddress 0xacab, AbiAddress 0xdeadbeef, AbiAddress 0xbabeface]
       <> (AbiAddress <$> shrinkIntegral a)
-    AbiFunction _ -> [] -- AbiFunction (BS.pack (replicate 32 0)) ] TODO
+    AbiFunction b -> shrink $ AbiBytes 24 b
 
 
 -- Bool synonym with custom read instance
@@ -534,7 +533,7 @@ parseAbiValue (AbiArrayType n typ) =
   AbiArray n typ <$> do a <- listP (parseAbiValue typ)
                         return $ Vector.fromList a
 parseAbiValue (AbiTupleType _) = error "tuple types not supported"
-parseAbiValue AbiFunctionType = error "function types not supported" -- TODO
+parseAbiValue AbiFunctionType = error "function types not supported"
 
 listP :: ReadP a -> ReadP [a]
 listP parser = between (char '[') (char ']') ((do skipSpaces
