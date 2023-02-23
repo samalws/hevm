@@ -2215,7 +2215,7 @@ runStatements stmts args t = do
             (zip args "abcdefg"))
       s =
         "foo(" <> T.intercalate ","
-                    (map (abiTypeSolidity2 . abiValueType) args) <> ")"
+                    (map (abiTypeSolidity . abiValueType) args) <> ")"
 
   runFunction [i|
     function foo(${params}) public pure returns (${abiTypeSolidity t} ${defaultDataLocation t} x) {

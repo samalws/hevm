@@ -44,7 +44,6 @@ module EVM.ABI
   , genAbiValue
   , abiValueType
   , abiTypeSolidity
-  , abiTypeSolidity2
   , abiMethod
   , emptyAbi
   , encodeAbiValue
@@ -192,20 +191,6 @@ abiTypeSolidity = \case
   AbiArrayDynamicType t -> abiTypeSolidity t <> "[]"
   AbiArrayType n t      -> abiTypeSolidity t <> "[" <> pack (show n) <> "]"
   AbiTupleType ts       -> "(" <> (Text.intercalate "," . Vector.toList $ abiTypeSolidity <$> ts) <> ")"
-  AbiFunctionType       -> "function()external"
-
-abiTypeSolidity2 :: AbiType -> Text
-abiTypeSolidity2 = \case
-  AbiUIntType n         -> "uint" <> pack (show n)
-  AbiIntType n          -> "int" <> pack (show n)
-  AbiAddressType        -> "address"
-  AbiBoolType           -> "bool"
-  AbiBytesType n        -> "bytes" <> pack (show n)
-  AbiBytesDynamicType   -> "bytes"
-  AbiStringType         -> "string"
-  AbiArrayDynamicType t -> abiTypeSolidity2 t <> "[]"
-  AbiArrayType n t      -> abiTypeSolidity2 t <> "[" <> pack (show n) <> "]"
-  AbiTupleType ts       -> "(" <> (Text.intercalate "," . Vector.toList $ abiTypeSolidity2 <$> ts) <> ")"
   AbiFunctionType       -> "function"
 
 getAbi :: AbiType -> Get AbiValue
@@ -479,7 +464,6 @@ instance Arbitrary AbiType where
     , AbiArrayType
         <$> (getPositive <$> arbitrary)
         <*> scale (`div` 2) arbitrary
-    , pure AbiFunctionType
     ]
 
 instance Arbitrary AbiValue where
