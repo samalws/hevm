@@ -593,7 +593,7 @@ forceVMList vm = (forceVMStack vm._state._stack) `seq` vm where
 -- | Executes the EVM one step
 exec1 :: EVM ()
 exec1 = do
-  !vm <- forceVMList <$> get
+  !vm <- get -- forceVMList <$> get
 
   let
     -- Convenient aliases
