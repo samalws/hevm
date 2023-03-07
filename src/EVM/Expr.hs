@@ -39,9 +39,9 @@ op1 symbolic _ x = symbolic x
 
 op2 :: (Expr EWord -> Expr EWord -> Expr EWord)
     -> (W256 -> W256 -> W256)
-    -> Expr EWord -> Expr EWord -> Expr EWord
-op2 _ concrete (Lit x) (Lit y) = Lit (concrete x y)
-op2 symbolic _ x y = symbolic x y
+    -> (Expr EWord) -> (Expr EWord) -> Expr EWord
+op2 !_ !concrete !(Lit x) !(Lit y) = let !res = concrete x y in res `seq` Lit res
+op2 !symbolic !_ !x !y = symbolic x y
 
 op3 :: (Expr EWord -> Expr EWord -> Expr EWord -> Expr EWord)
     -> (W256 -> W256 -> W256 -> W256)
@@ -53,12 +53,10 @@ op3 symbolic _ x y z = symbolic x y z
 -- only one argument is a Lit. This makes writing pattern matches in the
 -- simplifier easier.
 normArgs :: (Expr EWord -> Expr EWord -> Expr EWord) -> (W256 -> W256 -> W256) -> Expr EWord -> Expr EWord -> Expr EWord
-normArgs sym conc l r = case (l, r) of
-  (Lit _, _) -> doOp l r
-  (_, Lit _) -> doOp r l
-  _ -> doOp l r
-  where
-    doOp = op2 sym conc
+normArgs !sym !conc !l !r = case (l, r) of
+  (Lit x, Lit y) -> let !res = conc x y in res `seq` Lit res
+  (_, Lit _) -> sym r l
+  _ -> sym l r
 
 -- Integers
 

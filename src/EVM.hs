@@ -556,7 +556,15 @@ initialContract theContractCode = Contract
 
 -- | Update program counter
 next :: (?op :: Word8) => EVM ()
-next = modifying (state . pc) (+ (opSize ?op))
+-- next = modifying (state . pc) (+ (opSize ?op))
+next = do
+  !st <- get
+  let !state = st._state
+  let !pc = state._pc
+  let !newPc = pc + (opSize ?op)
+  let !newState = state { _pc = newPc }
+  let !newSt = st { _state = newState }
+  put newSt
 
 -- | Executes the EVM one step
 exec1 :: EVM ()
@@ -1798,17 +1806,22 @@ notStatic continue = do
     then vmError StateChangeWhileStatic
     else continue
 
--- | Burn gas, failing if insufficient gas is available
 burn :: Word64 -> EVM () -> EVM ()
-burn n continue = do
+burn !n !continue = do
+  !success <- burn_ n
+  if success then continue else pure ()
+
+-- | Burn gas, failing if insufficient gas is available
+burn_ :: Word64 -> EVM Bool
+burn_ !n = do
   available <- use (state . gas)
   if n <= available
     then do
       state . gas -= n
       burned += n
-      continue
+      pure True
     else
-      vmError (OutOfGas available n)
+      vmError (OutOfGas available n) >> pure False
 
 forceConcrete :: Expr EWord -> String -> (W256 -> EVM ()) -> EVM ()
 forceConcrete n msg continue = case maybeLitWord n of

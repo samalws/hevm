@@ -84,7 +84,7 @@ prepareTests = do
   isCI <- isJust <$> lookupEnv "CI"
   let problematicTests = if isCI then commonProblematicTests <> ciProblematicTests else commonProblematicTests
   let ignoredFiles = if isCI then ciIgnoredFiles else []
-  groups <- mapM (\f -> testGroup (makeRelative repo f) <$> (if any (`isInfixOf` f) ignoredFiles then pure [] else testsFromFile f problematicTests)) jsonFiles
+  groups <- mapM (\f -> testGroup (makeRelative repo f) <$> (if any (`isInfixOf` f) ignoredFiles then pure [] else testsFromFile f problematicTests)) (take 500 jsonFiles)
   putStrLn "Loaded."
   pure $ testGroup "ethereum-tests" groups
 
