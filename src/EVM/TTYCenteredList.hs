@@ -1,3 +1,4 @@
+{-# LANGUAGE StrictData #-}
 module EVM.TTYCenteredList where
 
 -- Hard fork of brick's List that centers the currently highlighted line.

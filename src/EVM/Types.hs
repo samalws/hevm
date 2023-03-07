@@ -1,3 +1,4 @@
+{-# LANGUAGE StrictData #-}
 {-# Language CPP #-}
 {-# Language TemplateHaskell #-}
 {-# Language TypeApplications #-}
@@ -144,79 +145,79 @@ data Expr (a :: EType) where
 
   -- identifiers
 
-  Lit            :: W256 -> Expr EWord
-  Var            :: Text -> Expr EWord
-  GVar           :: GVar a -> Expr a
+  Lit            :: !( W256 ) -> Expr EWord
+  Var            :: !( Text ) -> Expr EWord
+  GVar           :: !( GVar a ) -> Expr a
 
   -- bytes
 
-  LitByte        :: Word8      -> Expr Byte
-  IndexWord      :: Expr EWord -> Expr EWord -> Expr Byte
-  EqByte         :: Expr Byte  -> Expr Byte  -> Expr EWord
+  LitByte        :: !( Word8      ) -> Expr Byte
+  IndexWord      :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr Byte
+  EqByte         :: !( Expr Byte  ) -> !(  Expr Byte   ) -> Expr EWord
 
   -- TODO: rm readWord in favour of this?
-  JoinBytes      :: Expr Byte -> Expr Byte -> Expr Byte -> Expr Byte
-                 -> Expr Byte -> Expr Byte -> Expr Byte -> Expr Byte
-                 -> Expr Byte -> Expr Byte -> Expr Byte -> Expr Byte
-                 -> Expr Byte -> Expr Byte -> Expr Byte -> Expr Byte
-                 -> Expr Byte -> Expr Byte -> Expr Byte -> Expr Byte
-                 -> Expr Byte -> Expr Byte -> Expr Byte -> Expr Byte
-                 -> Expr Byte -> Expr Byte -> Expr Byte -> Expr Byte
-                 -> Expr Byte -> Expr Byte -> Expr Byte -> Expr Byte
+  JoinBytes      :: !( Expr Byte ) -> !(  Expr Byte  ) -> Expr Byte -> Expr Byte
+                 -> !(  Expr Byte  ) -> Expr Byte -> !(  Expr Byte  ) -> Expr Byte
+                 -> !(  Expr Byte  ) -> Expr Byte -> !(  Expr Byte  ) -> Expr Byte
+                 -> !(  Expr Byte  ) -> Expr Byte -> !(  Expr Byte  ) -> Expr Byte
+                 -> !(  Expr Byte  ) -> Expr Byte -> !(  Expr Byte  ) -> Expr Byte
+                 -> !(  Expr Byte  ) -> Expr Byte -> !(  Expr Byte  ) -> Expr Byte
+                 -> !(  Expr Byte  ) -> Expr Byte -> !(  Expr Byte  ) -> Expr Byte
+                 -> !(  Expr Byte  ) -> Expr Byte -> !(  Expr Byte  ) -> Expr Byte
                  -> Expr EWord
   -- control flow
 
-  Revert              :: [Prop] -> Expr Buf -> Expr End
-  Failure             :: [Prop] -> Error -> Expr End
-  Return              :: [Prop] -> Expr Buf -> Expr Storage -> Expr End
-  ITE                 :: Expr EWord -> Expr End -> Expr End -> Expr End
+  Revert              :: !( [Prop] ) -> !(  Expr Buf  ) -> Expr End
+  Failure             :: !( [Prop] ) -> !(  Error  ) -> Expr End
+  Return              :: !( [Prop] ) -> !(  Expr Buf  ) -> Expr Storage -> Expr End
+  ITE                 :: !( Expr EWord ) -> !(  Expr End  ) -> Expr End -> Expr End
 
   -- integers
 
-  Add            :: Expr EWord -> Expr EWord -> Expr EWord
-  Sub            :: Expr EWord -> Expr EWord -> Expr EWord
-  Mul            :: Expr EWord -> Expr EWord -> Expr EWord
-  Div            :: Expr EWord -> Expr EWord -> Expr EWord
-  SDiv           :: Expr EWord -> Expr EWord -> Expr EWord
-  Mod            :: Expr EWord -> Expr EWord -> Expr EWord
-  SMod           :: Expr EWord -> Expr EWord -> Expr EWord
-  AddMod         :: Expr EWord -> Expr EWord -> Expr EWord -> Expr EWord
-  MulMod         :: Expr EWord -> Expr EWord -> Expr EWord -> Expr EWord
-  Exp            :: Expr EWord -> Expr EWord -> Expr EWord
-  SEx            :: Expr EWord -> Expr EWord -> Expr EWord
-  Min            :: Expr EWord -> Expr EWord -> Expr EWord
-  Max            :: Expr EWord -> Expr EWord -> Expr EWord
+  Add            :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord
+  Sub            :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord
+  Mul            :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord
+  Div            :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord
+  SDiv           :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord
+  Mod            :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord
+  SMod           :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord
+  AddMod         :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord -> Expr EWord
+  MulMod         :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord -> Expr EWord
+  Exp            :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord
+  SEx            :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord
+  Min            :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord
+  Max            :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord
 
   -- booleans
 
-  LT             :: Expr EWord -> Expr EWord -> Expr EWord
-  GT             :: Expr EWord -> Expr EWord -> Expr EWord
-  LEq            :: Expr EWord -> Expr EWord -> Expr EWord
-  GEq            :: Expr EWord -> Expr EWord -> Expr EWord
-  SLT            :: Expr EWord -> Expr EWord -> Expr EWord
-  SGT            :: Expr EWord -> Expr EWord -> Expr EWord
-  Eq             :: Expr EWord -> Expr EWord -> Expr EWord
-  IsZero         :: Expr EWord -> Expr EWord
+  LT             :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord
+  GT             :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord
+  LEq            :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord
+  GEq            :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord
+  SLT            :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord
+  SGT            :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord
+  Eq             :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord
+  IsZero         :: !( Expr EWord ) -> Expr EWord
 
   -- bits
 
-  And            :: Expr EWord -> Expr EWord -> Expr EWord
-  Or             :: Expr EWord -> Expr EWord -> Expr EWord
-  Xor            :: Expr EWord -> Expr EWord -> Expr EWord
-  Not            :: Expr EWord -> Expr EWord
-  SHL            :: Expr EWord -> Expr EWord -> Expr EWord
-  SHR            :: Expr EWord -> Expr EWord -> Expr EWord
-  SAR            :: Expr EWord -> Expr EWord -> Expr EWord
+  And            :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord
+  Or             :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord
+  Xor            :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord
+  Not            :: !( Expr EWord ) -> Expr EWord
+  SHL            :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord
+  SHR            :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord
+  SAR            :: !( Expr EWord ) -> !(  Expr EWord  ) -> Expr EWord
 
   -- Hashes
 
-  Keccak         :: Expr Buf -> Expr EWord
-  SHA256         :: Expr Buf -> Expr EWord
+  Keccak         :: !( Expr Buf ) -> Expr EWord
+  SHA256         :: !( Expr Buf ) -> Expr EWord
 
   -- block context
 
   Origin         :: Expr EWord
-  BlockHash      :: Expr EWord -> Expr EWord
+  BlockHash      :: !( Expr EWord ) -> Expr EWord
   Coinbase       :: Expr EWord
   Timestamp      :: Expr EWord
   BlockNumber    :: Expr EWord
@@ -321,7 +322,7 @@ data Expr (a :: EType) where
   -- storage
 
   EmptyStore     :: Expr Storage
-  ConcreteStore  :: Map W256 (Map W256 W256) -> Expr Storage
+  ConcreteStore  :: !( Map W256 (Map W256 W256) ) -> Expr Storage
   AbstractStore  :: Expr Storage
 
   SLoad          :: Expr EWord         -- address
@@ -337,8 +338,8 @@ data Expr (a :: EType) where
 
   -- buffers
 
-  ConcreteBuf    :: ByteString -> Expr Buf
-  AbstractBuf    :: Text -> Expr Buf
+  ConcreteBuf    :: !( ByteString ) -> Expr Buf
+  AbstractBuf    :: !( Text ) -> Expr Buf
 
   ReadWord       :: Expr EWord         -- index
                  -> Expr Buf           -- src
@@ -365,7 +366,7 @@ data Expr (a :: EType) where
                  -> Expr Buf           -- dst
                  -> Expr Buf
 
-  BufLength      :: Expr Buf -> Expr EWord
+  BufLength      :: !( Expr Buf ) -> Expr EWord
 
 deriving instance Show (Expr a)
 deriving instance Eq (Expr a)

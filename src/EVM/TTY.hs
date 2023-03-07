@@ -1,3 +1,4 @@
+{-# LANGUAGE StrictData #-}
 {-# Language TemplateHaskell #-}
 {-# Language ImplicitParams #-}
 {-# Language DataKinds #-}

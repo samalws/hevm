@@ -1,3 +1,4 @@
+{-# LANGUAGE StrictData #-}
 module EVM.Precompiled (execute) where
 
 import Data.ByteString (ByteString)

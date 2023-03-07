@@ -1,10 +1,14 @@
+{-# LANGUAGE StrictData #-}
 {-# Language ImplicitParams #-}
 {-# Language DataKinds #-}
 {-# Language GADTs #-}
 {-# Language StrictData #-}
 {-# Language TemplateHaskell #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module EVM where
+
+import Control.DeepSeq
 
 import Prelude hiding (log, exponent, GT, LT)
 
@@ -88,45 +92,59 @@ deriving instance Show Error
 
 -- | The possible result states of a VM
 data VMResult
-  = VMFailure Error -- ^ An operation failed
-  | VMSuccess (Expr Buf) -- ^ Reached STOP, RETURN, or end-of-code
+  = VMFailure !Error -- ^ An operation failed
+  | VMSuccess !(Expr Buf) -- ^ Reached STOP, RETURN, or end-of-code
+  deriving Generic
 
 deriving instance Show VMResult
 
 -- | The state of a stepwise EVM execution
 data VM = VM
-  { _result         :: Maybe VMResult
-  , _state          :: FrameState
-  , _frames         :: [Frame]
-  , _env            :: Env
-  , _block          :: Block
-  , _tx             :: TxState
-  , _logs           :: [Expr Log]
-  , _traces         :: Zipper.TreePos Zipper.Empty Trace
-  , _cache          :: Cache
-  , _burned         :: Word64
-  , _iterations     :: Map CodeLocation Int
-  , _constraints    :: [Prop]
-  , _keccakEqs      :: [Prop]
-  , _allowFFI       :: Bool
-  , _overrideCaller :: Maybe (Expr EWord)
+  { _result         :: !(Maybe VMResult)
+  , _state          :: !(FrameState)
+  , _frames         :: !([Frame])
+  , _env            :: !(Env)
+  , _block          :: !(Block)
+  , _tx             :: !(TxState)
+  , _logs           :: !([Expr Log])
+  , _traces         :: !(Zipper.TreePos Zipper.Empty Trace)
+  , _cache          :: !(Cache)
+  , _burned         :: !(Word64)
+  , _iterations     :: !(Map CodeLocation Int)
+  , _constraints    :: !([Prop])
+  , _keccakEqs      :: !([Prop])
+  , _allowFFI       :: !(Bool)
+  , _overrideCaller :: !(Maybe (Expr EWord))
   }
-  deriving (Show)
+  deriving (Show) -- , Generic)
+
+-- instance (Generic b) => Generic (Zipper.TreePos Zipper.Empty b)
+-- instance (NFData b, Generic b) => NFData (Zipper.TreePos Zipper.Empty b)
+-- instance NFData VM
+
+-- instance NFData VMResult
+-- instance NFData FrameState
+-- instance NFData Frame
+-- instance NFData Env
+-- instance NFData Block
+-- instance NFData TxState
+-- instance NFData VM where
+--   rnf (VM a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15) = a1 `deepseq` a2 `deepseq` a3 `deepseq` a4 `deepseq` a5 `deepseq` a6 `deepseq` a7 `deepseq` a8 `deepseq` a9 `deepseq` a10 `deepseq` a11 `deepseq` a12 `deepseq` {- a13 `deepseq` -} a14 `deepseq` {- a15 `deepseq` -} ()
 
 data Trace = Trace
-  { _traceOpIx     :: Int
-  , _traceContract :: Contract
-  , _traceData     :: TraceData
+  { _traceOpIx     :: !Int
+  , _traceContract :: !Contract
+  , _traceData     :: !TraceData
   }
   deriving (Show)
 
 data TraceData
-  = EventTrace (Expr EWord) (Expr Buf) [Expr EWord]
-  | FrameTrace FrameContext
-  | QueryTrace Query
-  | ErrorTrace Error
-  | EntryTrace Text
-  | ReturnTrace (Expr Buf) FrameContext
+  = EventTrace !(Expr EWord) !(Expr Buf) ![Expr EWord]
+  | FrameTrace !FrameContext
+  | QueryTrace !Query
+  | ErrorTrace !Error
+  | EntryTrace !Text
+  | ReturnTrace !(Expr Buf) !FrameContext
   deriving (Show)
 
 -- | Queries halt execution until resolved through RPC calls or SMT queries
@@ -170,19 +188,19 @@ type EVM a = State VM a
 type CodeLocation = (Addr, Int)
 
 -- | The possible return values of a SMT query
-data BranchCondition = Case Bool | Unknown | Inconsistent
+data BranchCondition = Case !Bool | Unknown | Inconsistent
   deriving Show
 
 -- | The possible return values of a `is unique` SMT query
-data IsUnique a = Unique a | Multiple | InconsistentU | TimeoutU
+data IsUnique a = Unique !a | Multiple | InconsistentU | TimeoutU
   deriving Show
 
 -- | The cache is data that can be persisted for efficiency:
 -- any expensive query that is constant at least within a block.
 data Cache = Cache
-  { _fetchedContracts :: Map Addr Contract,
-    _fetchedStorage :: Map W256 (Map W256 W256),
-    _path :: Map (CodeLocation, Int) Bool
+  { _fetchedContracts :: !(Map Addr Contract),
+    _fetchedStorage :: !(Map W256 (Map W256 W256)),
+    _path :: !(Map (CodeLocation, Int) Bool)
   } deriving Show
 
 data StorageBase = Concrete | Symbolic
@@ -190,98 +208,98 @@ data StorageBase = Concrete | Symbolic
 
 -- | A way to specify an initial VM state
 data VMOpts = VMOpts
-  { vmoptContract :: Contract
-  , vmoptCalldata :: (Expr Buf, [Prop])
-  , vmoptStorageBase :: StorageBase
-  , vmoptValue :: Expr EWord
-  , vmoptPriorityFee :: W256
-  , vmoptAddress :: Addr
-  , vmoptCaller :: Expr EWord
-  , vmoptOrigin :: Addr
-  , vmoptGas :: Word64
-  , vmoptGaslimit :: Word64
-  , vmoptNumber :: W256
-  , vmoptTimestamp :: Expr EWord
-  , vmoptCoinbase :: Addr
-  , vmoptPrevRandao :: W256
-  , vmoptMaxCodeSize :: W256
-  , vmoptBlockGaslimit :: Word64
-  , vmoptGasprice :: W256
-  , vmoptBaseFee :: W256
-  , vmoptSchedule :: FeeSchedule Word64
-  , vmoptChainId :: W256
-  , vmoptCreate :: Bool
-  , vmoptTxAccessList :: Map Addr [W256]
-  , vmoptAllowFFI :: Bool
+  { vmoptContract :: !(Contract)
+  , vmoptCalldata :: !((Expr Buf, [Prop]))
+  , vmoptStorageBase :: !(StorageBase)
+  , vmoptValue :: !(Expr EWord)
+  , vmoptPriorityFee :: !(W256)
+  , vmoptAddress :: !(Addr)
+  , vmoptCaller :: !(Expr EWord)
+  , vmoptOrigin :: !(Addr)
+  , vmoptGas :: !(Word64)
+  , vmoptGaslimit :: !(Word64)
+  , vmoptNumber :: !(W256)
+  , vmoptTimestamp :: !(Expr EWord)
+  , vmoptCoinbase :: !(Addr)
+  , vmoptPrevRandao :: !(W256)
+  , vmoptMaxCodeSize :: !(W256)
+  , vmoptBlockGaslimit :: !(Word64)
+  , vmoptGasprice :: !(W256)
+  , vmoptBaseFee :: !(W256)
+  , vmoptSchedule :: !(FeeSchedule Word64)
+  , vmoptChainId :: !(W256)
+  , vmoptCreate :: !(Bool)
+  , vmoptTxAccessList :: !(Map Addr [W256])
+  , vmoptAllowFFI :: !(Bool)
   } deriving Show
 
 -- | An entry in the VM's "call/create stack"
 data Frame = Frame
-  { _frameContext   :: FrameContext
-  , _frameState     :: FrameState
+  { _frameContext   :: !FrameContext
+  , _frameState     :: !FrameState
   }
-  deriving (Show)
+  deriving (Show, Generic)
 
 -- | Call/create info
 data FrameContext
   = CreationContext
-    { creationContextAddress   :: Addr
-    , creationContextCodehash  :: Expr EWord
-    , creationContextReversion :: Map Addr Contract
-    , creationContextSubstate  :: SubState
+    { creationContextAddress   :: !(Addr)
+    , creationContextCodehash  :: !(Expr EWord)
+    , creationContextReversion :: !(Map Addr Contract)
+    , creationContextSubstate  :: !(SubState)
     }
   | CallContext
-    { callContextTarget    :: Addr
-    , callContextContext   :: Addr
-    , callContextOffset    :: W256
-    , callContextSize      :: W256
-    , callContextCodehash  :: Expr EWord
-    , callContextAbi       :: Maybe W256
-    , callContextData      :: Expr Buf
-    , callContextReversion :: (Map Addr Contract, Expr Storage)
-    , callContextSubState  :: SubState
+    { callContextTarget    :: !(Addr)
+    , callContextContext   :: !(Addr)
+    , callContextOffset    :: !(W256)
+    , callContextSize      :: !(W256)
+    , callContextCodehash  :: !(Expr EWord)
+    , callContextAbi       :: !(Maybe W256)
+    , callContextData      :: !(Expr Buf)
+    , callContextReversion :: !(Map Addr Contract, Expr Storage)
+    , callContextSubState  :: !SubState
     }
   deriving (Show)
 
 -- | The "registers" of the VM along with memory and data stack
 data FrameState = FrameState
-  { _contract     :: Addr
-  , _codeContract :: Addr
-  , _code         :: ContractCode
-  , _pc           :: Int
-  , _stack        :: [Expr EWord]
-  , _memory       :: Expr Buf
-  , _memorySize   :: Word64
-  , _calldata     :: Expr Buf
-  , _callvalue    :: Expr EWord
-  , _caller       :: Expr EWord
-  , _gas          :: Word64
-  , _returndata   :: Expr Buf
-  , _static       :: Bool
+  { _contract     :: !(Addr)
+  , _codeContract :: !(Addr)
+  , _code         :: !(ContractCode)
+  , _pc           :: !(Int)
+  , _stack        :: !([Expr EWord])
+  , _memory       :: !(Expr Buf)
+  , _memorySize   :: !(Word64)
+  , _calldata     :: !(Expr Buf)
+  , _callvalue    :: !(Expr EWord)
+  , _caller       :: !(Expr EWord)
+  , _gas          :: !(Word64)
+  , _returndata   :: !(Expr Buf)
+  , _static       :: !(Bool)
   }
   deriving (Show)
 
 -- | The state that spans a whole transaction
 data TxState = TxState
-  { _gasprice            :: W256
-  , _txgaslimit          :: Word64
-  , _txPriorityFee       :: W256
-  , _origin              :: Addr
-  , _toAddr              :: Addr
-  , _value               :: Expr EWord
-  , _substate            :: SubState
-  , _isCreate            :: Bool
-  , _txReversion         :: Map Addr Contract
+  { _gasprice            :: !(W256)
+  , _txgaslimit          :: !(Word64)
+  , _txPriorityFee       :: !(W256)
+  , _origin              :: !(Addr)
+  , _toAddr              :: !(Addr)
+  , _value               :: !(Expr EWord)
+  , _substate            :: !(SubState)
+  , _isCreate            :: !(Bool)
+  , _txReversion         :: !(Map Addr Contract)
   }
   deriving (Show)
 
 -- | The "accrued substate" across a transaction
 data SubState = SubState
-  { _selfdestructs   :: [Addr]
-  , _touchedAccounts :: [Addr]
-  , _accessedAddresses :: Set Addr
-  , _accessedStorageKeys :: Set (Addr, W256)
-  , _refunds         :: [(Addr, Word64)]
+  { _selfdestructs   :: ![Addr]
+  , _touchedAccounts :: ![Addr]
+  , _accessedAddresses :: !(Set Addr)
+  , _accessedStorageKeys :: !(Set (Addr, W256))
+  , _refunds         :: ![(Addr, Word64)]
   -- in principle we should include logs here, but do not for now
   }
   deriving (Show)
@@ -371,27 +389,27 @@ instance ParseField StorageModel
 
 -- | Various environmental data
 data Env = Env
-  { _contracts    :: Map Addr Contract
-  , _chainId      :: W256
-  , _storage      :: Expr Storage
-  , _origStorage  :: Map W256 (Map W256 W256)
-  , _sha3Crack    :: Map W256 ByteString
+  { _contracts    :: !(Map Addr Contract)
+  , _chainId      :: !(W256)
+  , _storage      :: !(Expr Storage)
+  , _origStorage  :: !(Map W256 (Map W256 W256))
+  , _sha3Crack    :: !(Map W256 ByteString)
   --, _keccakUsed   :: [([SWord 8], SWord 256)]
   }
-  deriving (Show)
+  deriving (Show, Generic)
 
 
 -- | Data about the block
 data Block = Block
-  { _coinbase    :: Addr
-  , _timestamp   :: Expr EWord
-  , _number      :: W256
-  , _prevRandao  :: W256
-  , _gaslimit    :: Word64
-  , _baseFee     :: W256
-  , _maxCodeSize :: W256
-  , _schedule    :: FeeSchedule Word64
-  } deriving Show
+  { _coinbase    :: !(Addr)
+  , _timestamp   :: !(Expr EWord)
+  , _number      :: !(W256)
+  , _prevRandao  :: !(W256)
+  , _gaslimit    :: !(Word64)
+  , _baseFee     :: !(W256)
+  , _maxCodeSize :: !(W256)
+  , _schedule    :: !(FeeSchedule Word64)
+  } deriving (Show, Generic)
 
 blankState :: FrameState
 blankState = FrameState
@@ -558,21 +576,27 @@ initialContract theContractCode = Contract
 next :: (?op :: Word8) => EVM ()
 next = modifying (state . pc) (+ (opSize ?op))
 
+forceVMList :: VM -> VM
+forceVMList vm = (forceVMStack vm._state._stack) `seq` vm where
+  forceVMStack :: [a] -> ()
+  forceVMStack ((!h):(!t)) = h `seq` forceVMStack t
+  forceVMStack [] = ()
+
 -- | Executes the EVM one step
 exec1 :: EVM ()
 exec1 = do
-  vm <- get
+  !vm <- forceVMList <$> get
 
   let
     -- Convenient aliases
-    mem  = vm._state._memory
-    stk  = vm._state._stack
-    self = vm._state._contract
-    this = fromMaybe (error "internal error: state contract") (Map.lookup self vm._env._contracts)
+    !mem  = vm._state._memory
+    !stk  = vm._state._stack
+    !self = vm._state._contract
+    !this = fromMaybe (error "internal error: state contract") (Map.lookup self vm._env._contracts)
 
     fees@FeeSchedule {..} = vm._block._schedule
 
-    doStop = finishFrame (FrameReturned mempty)
+    !doStop = finishFrame (FrameReturned mempty)
 
   if self > 0x0 && self <= 0x9 then do
     -- call to precompile
@@ -2544,7 +2568,10 @@ stackOp1 cost f =
       burn (cost x) $ do
         next
         let !y = f x
-        state . stack .= y : xs
+        -- state . stack .= y : xs
+        !st <- get
+        let !newSt = st { _state = st._state { _stack = y : xs } }
+        put newSt
     _ ->
       underrun
 
@@ -2555,10 +2582,14 @@ stackOp2
   -> EVM ()
 stackOp2 cost f =
   use (state . stack) >>= \case
-    (x:y:xs) ->
+    ((!x):(!y):xs) ->
       burn (cost (x, y)) $ do
         next
-        state . stack .= f (x, y) : xs
+        let !z = f (x, y)
+        -- state . stack .= z : xs
+        !st <- get
+        let !newSt = st { _state = st._state { _stack = z : xs } }
+        put newSt
     _ ->
       underrun
 
@@ -2569,10 +2600,14 @@ stackOp3
   -> EVM ()
 stackOp3 cost f =
   use (state . stack) >>= \case
-    (x:y:z:xs) ->
+    ((!x):(!y):(!z):xs) ->
       burn (cost (x, y, z)) $ do
       next
-      state . stack .= f (x, y, z) : xs
+      let !w = f (x, y, z)
+      -- state . stack .= w : xs
+      !st <- get
+      let !newSt = st { _state = st._state { _stack = w : xs } }
+      put newSt
     _ ->
       underrun
 

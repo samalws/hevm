@@ -1,3 +1,4 @@
+{-# LANGUAGE StrictData #-}
 module EVM.FeeSchedule where
 
 data FeeSchedule n = FeeSchedule

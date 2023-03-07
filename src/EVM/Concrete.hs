@@ -1,3 +1,4 @@
+{-# LANGUAGE StrictData #-}
 {-# Language StrictData #-}
 
 module EVM.Concrete where

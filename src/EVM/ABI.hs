@@ -1,3 +1,4 @@
+{-# LANGUAGE StrictData #-}
 {-
 
   The ABI encoding is mostly straightforward.

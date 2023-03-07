@@ -1,3 +1,4 @@
+{-# LANGUAGE StrictData #-}
 module EVM.Transaction where
 
 import Prelude hiding (Word)

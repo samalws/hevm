@@ -1,3 +1,4 @@
+{-# LANGUAGE StrictData #-}
 {-# Language DataKinds #-}
 {-# Language ImplicitParams #-}
 

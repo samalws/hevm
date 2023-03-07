@@ -1,3 +1,4 @@
+{-# LANGUAGE StrictData #-}
 module EVM.Demand (demand) where
 
 import Control.DeepSeq (NFData, force)

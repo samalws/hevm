@@ -1,3 +1,4 @@
+{-# LANGUAGE StrictData #-}
 {-# Language DeriveAnyClass #-}
 {-# Language DataKinds #-}
 {-# Language StrictData #-}

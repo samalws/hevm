@@ -1,3 +1,4 @@
+{-# LANGUAGE StrictData #-}
 module EVM.Dapp where
 
 import EVM (Trace(..), ContractCode(..), Contract(..), RuntimeCode (..))

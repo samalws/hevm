@@ -1,4 +1,7 @@
+{-# LANGUAGE StrictData #-}
 module EVM.Exec where
+
+-- import Control.DeepSeq (deepseq)
 
 import EVM
 import EVM.Concrete (createAddress)
@@ -47,15 +50,16 @@ vmForEthrunCreation creationCode =
 
 exec :: State VM VMResult
 exec = do
-  vm <- get
-  case vm._result of
+  !vm <- get
+  -- vm `deepseq` case vm._result of
+  vm `seq` case vm._result of
     Nothing -> exec1 >> exec
     Just r -> pure r
 
 run :: State VM VM
 run = do
-  vm <- get
-  case vm._result of
+  !vm <- get
+  vm `seq` case vm._result of
     Nothing -> exec1 >> run
     Just _ -> pure vm
 

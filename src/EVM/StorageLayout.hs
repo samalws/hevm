@@ -1,3 +1,4 @@
+{-# LANGUAGE StrictData #-}
 module EVM.StorageLayout where
 
 -- Figures out the layout of storage slots for Solidity contracts.

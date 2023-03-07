@@ -1,3 +1,4 @@
+{-# LANGUAGE StrictData #-}
 module EVM.RLP where
 
 import Prelude hiding (drop, head)

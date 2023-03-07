@@ -1,3 +1,4 @@
+{-# LANGUAGE StrictData #-}
 
 -- This is a backend for the fact representation that uses a Git
 -- repository as the store.

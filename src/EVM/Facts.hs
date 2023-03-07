@@ -1,3 +1,4 @@
+{-# LANGUAGE StrictData #-}
 {-# Language PartialTypeSignatures #-}
 {-# Language DataKinds #-}
 {-# Language ExtendedDefaultRules #-}

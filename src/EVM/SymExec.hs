@@ -1,3 +1,4 @@
+{-# LANGUAGE StrictData #-}
 {-# Language TupleSections #-}
 {-# Language DataKinds #-}
 

@@ -1,3 +1,4 @@
+{-# LANGUAGE StrictData #-}
 module EVM.Patricia where
 
 import EVM.RLP
