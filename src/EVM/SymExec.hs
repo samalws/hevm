@@ -8,7 +8,7 @@ import Prelude hiding (Word)
 
 import Data.Tuple (swap)
 import Control.Lens hiding (pre)
-import EVM hiding (Query, Revert, push, bytecode, cache)
+import EVM hiding (Query, Revert, push, bytecode, cache, uncurry)
 import qualified EVM
 import EVM.Exec
 import qualified EVM.Fetch as Fetch

@@ -10,7 +10,7 @@ module EVM where
 
 import Control.DeepSeq
 
-import Prelude hiding (log, exponent, GT, LT)
+import Prelude hiding (log, exponent, GT, LT, uncurry)
 
 import EVM.ABI
 import EVM.Concrete (createAddress, create2Address)
@@ -59,6 +59,9 @@ import Crypto.Number.ModArithmetic (expFast)
 import Crypto.PubKey.ECC.ECDSA (signDigestWith, PrivateKey(..), Signature(..))
 import Crypto.PubKey.ECC.Generate (generateQ)
 import Crypto.PubKey.ECC.Types (getCurveByName, CurveName(..), Point(..))
+
+uncurry :: (a -> b -> c) -> (a,b) -> c
+uncurry !f (!a,!b) = let fa = f a in fa `seq` fa b
 
 -- * Data types
 
@@ -654,7 +657,7 @@ exec1 = do
                   let bytes = V.take n $ V.drop (1 + vm._state._pc) ops
                   in readWord (Lit 0) $ Expr.fromList $ padLeft' 32 bytes
           limitStack 1 $
-            burn g_verylow $ do
+            burn g_verylow $! do
               next
               pushSym xs
 
@@ -665,7 +668,7 @@ exec1 = do
             Nothing -> underrun
             Just y ->
               limitStack 1 $
-                burn g_verylow $ do
+                burn g_verylow $! do
                   next
                   pushSym y
 
@@ -675,7 +678,7 @@ exec1 = do
           if length stk < i + 1
             then underrun
             else
-              burn g_verylow $ do
+              burn g_verylow $! do
                 next
                 zoom (state . stack) $ do
                   assign (ix 0) (stk ^?! ix i)
@@ -1077,7 +1080,7 @@ exec1 = do
 
                     acc <- accessStorageForGas self x
                     let cold_storage_cost = if acc then 0 else g_cold_sload
-                    burn (storage_cost + cold_storage_cost) $ do
+                    burn (storage_cost + cold_storage_cost) $! do
                       next
                       assign (state . stack) xs
                       modifying (env . storage)
@@ -1159,7 +1162,7 @@ exec1 = do
               let cost = if exponent == 0
                          then g_exp
                          else g_exp + g_expbyte * num (ceilDiv (1 + log2 exponent) 8)
-              in burn cost $ do
+              in burn cost $! do
                 next
                 state . stack .= Expr.exp base exponent' : xs
             _ -> underrun
@@ -1179,7 +1182,7 @@ exec1 = do
                     newAddr = createAddress self this._nonce
                     (cost, gas') = costOfCreate fees availableGas 0
                   _ <- accessAccountForGas newAddr
-                  burn (cost - gas') $ do
+                  burn (cost - gas') $! do
                     -- unfortunately we have to apply some (pretty hacky)
                     -- heuristics here to parse the unstructured buffer read
                     -- from memory into a code and data section
@@ -1343,7 +1346,7 @@ exec1 = do
                   c_new = if not recipientExists && funds /= 0
                           then g_selfdestruct_newaccount
                           else 0
-              burn (g_selfdestruct + c_new + cost) $ do
+              burn (g_selfdestruct + c_new + cost) $! do
                    selfdestruct self
                    touchAccount xTo
 
@@ -1387,7 +1390,7 @@ callChecks this xGas xContext xTo xValue xInOffset xInSize xOutOffset xOutSize x
       availableGas <- use (state . gas)
       let recipientExists = accountExists xContext vm
       (cost, gas') <- costOfCall fees recipientExists xValue availableGas xGas xTo
-      burn (cost - gas') $ do
+      burn (cost - gas') $! do
         if xValue > num this._balance
         then do
           assign (state . stack) (Lit 0 : xs)
@@ -1445,12 +1448,12 @@ executePrecompile preCompileAddr gasCap inOffset inSize outOffset outSize xs  = 
       fees = vm._block._schedule
       cost = costOfPrecompile fees preCompileAddr input
       notImplemented = error $ "precompile at address " <> show preCompileAddr <> " not yet implemented"
-      precompileFail = burn (gasCap - cost) $ do
+      precompileFail = burn (gasCap - cost) $! do
                          assign (state . stack) (Lit 0 : xs)
                          pushTrace $ ErrorTrace PrecompileFailure
                          next
   if cost > gasCap then
-    burn gasCap $ do
+    burn gasCap $! do
       assign (state . stack) (Lit 0 : xs)
       next
   else
@@ -2121,7 +2124,7 @@ delegateCall this gasGiven xTo xContext xValue xInOffset xInSize xOutOffset xOut
         \xGas -> do
           vm0 <- get
           fetchAccount xTo' $ \target ->
-                burn xGas $ do
+                burn xGas $! do
                   let newContext = CallContext
                                     { callContextTarget    = xTo'
                                     , callContextContext   = xContext'
@@ -2201,12 +2204,12 @@ create self this xGas' xValue xs newAddr initCode = do
     pushTrace $ ErrorTrace CallDepthLimitReached
     next
   else if collision $ Map.lookup newAddr vm0._env._contracts
-  then burn xGas $ do
+  then burn xGas $! do
     assign (state . stack) (Lit 0 : xs)
     assign (state . returndata) mempty
     modifying (env . contracts . ix self . nonce) succ
     next
-  else burn xGas $ do
+  else burn xGas $! do
     touchAccount self
     touchAccount newAddr
     let
@@ -2469,7 +2472,7 @@ accessUnboundedMemoryRange fees f l continue = do
   m0 <- num <$> use (state . memorySize)
   do
     let m1 = 32 * ceilDiv (max m0 (f + l)) 32
-    burn (memoryCost fees m1 - memoryCost fees m0) $ do
+    burn (memoryCost fees m1 - memoryCost fees m0) $! do
       assign (state . memorySize) m1
       continue
 
@@ -2578,7 +2581,7 @@ stackOp1
 stackOp1 cost f =
   use (state . stack) >>= \case
     (x:xs) ->
-      burn (cost x) $ do
+      burn (cost x) $! do
         next
         let !y = f x
         -- state . stack .= y : xs
@@ -2596,7 +2599,7 @@ stackOp2
 stackOp2 cost f =
   use (state . stack) >>= \case
     ((!x):(!y):xs) ->
-      burn (cost (x, y)) $ do
+      burn (cost (x, y)) $! do
         next
         let !z = f (x, y)
         -- state . stack .= z : xs
@@ -2614,7 +2617,7 @@ stackOp3
 stackOp3 cost f =
   use (state . stack) >>= \case
     ((!x):(!y):(!z):xs) ->
-      burn (cost (x, y, z)) $ do
+      burn (cost (x, y, z)) $! do
       next
       let !w = f (x, y, z)
       -- state . stack .= w : xs
