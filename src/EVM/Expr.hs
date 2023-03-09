@@ -103,8 +103,15 @@ mulmod = op3 MulMod (\x y z ->
    then 0
    else fromIntegral $ (to512 x * to512 y) `Prelude.mod` to512 z)
 
+customExp :: W256 -> W256 -> W256
+customExp a b = helper 1 0 a where
+  helper result 256 _ = result
+  helper resultSoFar bitToCheck a
+    | b `testBit` bitToCheck = helper (resultSoFar*a) (bitToCheck+1) (a*a)
+    | otherwise = helper resultSoFar (bitToCheck+1) (a*a)
+
 exp :: Expr EWord -> Expr EWord -> Expr EWord
-exp = op2 Exp (^)
+exp = op2 Exp customExp
 
 sex :: Expr EWord -> Expr EWord -> Expr EWord
 sex = op2 SEx (\bytes x ->
