@@ -107,7 +107,7 @@ ciIgnoredFiles :: [String]
 ciIgnoredFiles = []
 
 commonProblematicTests :: Map String (TestTree -> TestTree)
-commonProblematicTests = Map.fromList
+commonProblematicTests = Map.fromList -- [("CALLBlake2f_MaxRounds_d0g0v0_London", ignoreTestBecause "very slow, bypasses timeout due time spent in FFI")]
   [ ("loopMul_d0g0v0_London", ignoreTestBecause "hevm is too slow")
   , ("loopMul_d1g0v0_London", ignoreTestBecause "hevm is too slow")
   , ("loopMul_d2g0v0_London", ignoreTestBecause "hevm is too slow")

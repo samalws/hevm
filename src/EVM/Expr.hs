@@ -10,7 +10,7 @@ module EVM.Expr where
 
 import Prelude hiding (LT, GT)
 import Data.Bits hiding (And, Xor)
-import Data.DoubleWord (Int256, Word256(Word256), Word128(Word128))
+import Data.DoubleWord (Int256, Word256(Word256), Word128(Word128), loWord, fromHiAndLo)
 import Data.Int (Int32)
 import Data.Word
 import Data.Maybe
@@ -41,7 +41,7 @@ op1 symbolic _ x = symbolic x
 op2 :: (Expr EWord -> Expr EWord -> Expr EWord)
     -> (W256 -> W256 -> W256)
     -> (Expr EWord) -> (Expr EWord) -> Expr EWord
-op2 !_ !concrete !(Lit x) !(Lit y) = let !res = concrete x y in res `seq` Lit res
+op2 !_ !concrete !(Lit x) !(Lit y) = let !res = concrete x y in Lit res
 op2 !symbolic !_ !x !y = symbolic x y
 
 op3 :: (Expr EWord -> Expr EWord -> Expr EWord -> Expr EWord)
@@ -97,14 +97,111 @@ addmod = op3 AddMod (\x y z ->
   then 0
   else fromIntegral $ (to512 x + to512 y) `Prelude.mod` to512 z)
 
+-- assumes x%z = x and y%z = y
+mulmodGeneric_ :: W256 -> Int -> Int -> W256 -> W256 -> W256 -> W256 -- (Num n) => n -> n -> n -> n
+
+-- mulmodGeneric_ !res _ 0 _ = res
+-- mulmodGeneric_ !res !x !y !z = mulmodGeneric_ newRes doubleX halfY z where
+--   newRes = if y .&. 1 == 0 then res else doMod (res+x)
+--   doubleX = doMod (x+x)
+--   halfY = shiftR y 1
+--   doMod n = if n > z then n-z else n
+
+mulmodGeneric_ !res !bitLookAt !totalBits _ _ _ | bitLookAt == totalBits = res
+mulmodGeneric_ !res !bitLookAt !totalBits !x !y !z = mulmodGeneric_ newRes (bitLookAt+1) totalBits doubleX y z where
+  newRes = if testBit y bitLookAt then doMod (res+x) else res
+  doubleX = doMod (shiftL x 1)
+  doMod n = if n > z then n-z else n
+
+mulmodGeneric :: W256 -> W256 -> W256 -> W256
+-- mulmodGeneric x y z = from64 $ mulmodGeneric_ 0 (to64 x) (to64 y) (to64 z)
+mulmodGeneric x y z = mulmodGeneric_ 0 0 (bitLength y) x y z
+
+to64 :: W256 -> Word64
+to64 (W256 w) = loWord $ loWord w
+
+from64 :: Word64 -> W256
+from64 w = W256 $ fromHiAndLo 0 $ fromHiAndLo 0 $ w
+
 mulmod :: Expr EWord -> Expr EWord -> Expr EWord -> Expr EWord
+-- mulmod = op3 MulMod mulmodGeneric
 mulmod = op3 MulMod (\x y z ->
    if z == 0
    then 0
    else fromIntegral $ (to512 x * to512 y) `Prelude.mod` to512 z)
+-- mulmod = op3 MulMod (\x y z ->
+--    if z == 0
+--    then 0
+--    else fromIntegral $ ((fromIntegral x :: Int) * (fromIntegral y :: Int)) `Prelude.mod` (fromIntegral z :: Int))
+
+bitLength :: W256 -> Int
+bitLength num = bitLength_ 255 where
+  bitLength_ (-1) = 0
+  bitLength_ n = if testBit num n then n+1 else bitLength_ (n-1)
+
+expGeneric_ :: W256 -> Int -> W256 -> W256 -> W256
+-- 1
+-- expGeneric_ !res _ 0 = res
+-- expGeneric_ !res !a !b = expGeneric_ newRes newA newB where
+--   newRes = if b .&. 1 == 0 then res else res*a
+--   newA = a*a
+--   newB = shiftR b 1
+
+-- 2
+-- expGeneric_ !res 256 _ _ = res
+-- expGeneric_ !res !n !a !b = expGeneric_ newRes (n+1) newA b where
+--   newRes = if testBit b n then res*a else res
+--   newA = a*a
+
+-- 3
+-- expGeneric_ !res !totalBits !bitToCheck _ _ | totalBits == bitToCheck = res
+-- expGeneric_ !res !totalBits !bitToCheck !a !b = expGeneric_ newRes totalBits (bitToCheck+1) newA b where
+--   newRes = if testBit b bitToCheck then res*a else res
+--   newA = a*a
+
+-- 4
+expGeneric_ !res 0 _ _ = res
+expGeneric_ !res !bitsLeft !a !b = expGeneric_ newRes (bitsLeft-1) newA newB where
+  newRes = if b .&. 1 == 0 then res else res*a
+  newA = a*a
+  newB = shiftR b 1
+
+expGeneric :: W256 -> W256 -> W256
+-- expGeneric a b = expGeneric_ 1 a b -- 1
+-- expGeneric a b = expGeneric_ 1 0 a b -- 2
+-- expGeneric a b = expGeneric_ 1 (bitLength b) 0 a b -- 3
+-- expGeneric a b = expGeneric_ 1 (bitLength b) a b -- 4
+-- expGeneric a b = a ^ b -- 5
+-- 6:
+-- expGeneric a b = helper 1 0 a where
+--   bitLengthB = bitLength b
+--   helper resultSoFar bitToCheck a
+--     | bitToCheck == bitLengthB = resultSoFar
+--     | b `testBit` bitToCheck = helper (resultSoFar*a) (bitToCheck+1) (a*a)
+--     | otherwise = helper resultSoFar (bitToCheck+1) (a*a)
+-- 7:
+-- expGeneric a b = helper 1 0 a where
+--   helper result 256 _ = result
+--   helper resultSoFar bitToCheck a
+--     | b `testBit` bitToCheck = helper (resultSoFar*a) (bitToCheck+1) (a*a)
+--     | otherwise = helper resultSoFar (bitToCheck+1) (a*a)
+-- 8:
+-- expGeneric a b = product $ map snd $ filter fst $ bitChecks `zip` squaresOfA where
+--   bitChecks = testBit b <$> [0..255]
+--   squaresOfA = a : [ x*x | x <- squaresOfA ]
+-- 9:
+expGeneric a b = product $ chooseToAdd <$> [0..255] <*> squaresOfA where
+  chooseToAdd bitNum aSquare = if b `testBit` bitNum then aSquare else 1
+  squaresOfA = a : [ x*x | x <- squaresOfA ]
 
 exp :: Expr EWord -> Expr EWord -> Expr EWord
-exp = op2 Exp (^)
+-- exp = op2 Exp (^)
+-- exp = op2 Exp f where
+--   f x y = if x < fromIntegral (maxBound :: Int) && y < fromIntegral (maxBound :: Int) then
+--      (let !result = (fromIntegral x :: Int) ^ (fromIntegral y :: Int) in if result >= 0 then fromIntegral result else x ^ y)
+--      else x ^ y
+-- exp = op2 Exp (\x y -> fromIntegral $ (fromIntegral x :: Int) ^ (fromIntegral y :: Int))
+exp = op2 Exp expGeneric
 
 sex :: Expr EWord -> Expr EWord -> Expr EWord
 sex = op2 SEx (\bytes x ->
